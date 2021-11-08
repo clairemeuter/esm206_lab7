@@ -1,0 +1,123 @@
+---
+title: "lab 7"
+author: "Claire Meuter"
+date: "11/8/2021"
+output: html_document
+---
+
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+#attach packaages 
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(broom)
+library(kableExtra)
+library(modelsummary)
+library(stargazer)
+```
+
+## Intro to ggpairs
+
+Use GGally::ggpairs() function to create a pair plot
+```{r}
+ggpairs(penguins)
+```
+
+```{r}
+penguins %>%
+  select(species, bill_length_mm:body_mass_g) %>% # the : keeps bill length through body mass
+  ggpairs(aes(color = species))#we can customize further like colors by species
+
+
+#I might seperatly want to look a penguins bill depth and body mass
+
+ggplot(data = penguins, aes(x = bill_depth_mm, y = body_mass_g, group_by = species)) + geom_point(aes(color = species)) + geom_smooth(method = "lm")
+```
+body mass seems to be lineraly related 
+lm-linear model
+
+## Multiple linear regression - penguins 
+use multiple linear regression to try to understand the relationship between multiple predictor variables and a signle continous outcome variable (body mass)
+
+```{r}
+penguin_lm <- lm(body_mass_g ~ flipper_length_mm + bill_depth_mm, data = penguins)
+
+#return just the coefficients by running name
+penguin_lm
+```
+How would you intreperate this co-efficient for flippper length? 
+On average we would expect a 1 mm increase in flipper length to be assciated with a 51.54 g increase in body mass if everything else is consant. 
+We would expect a 22.63 g increase in body mass for each 1mm increase in bill depth 
+
+We can use the summary function to get more information 
+```{r}
+summary(penguin_lm)
+```
+
+For bill depth we CANNOT reject the null hypothesis- can still impact other variables, but the P-value is not significant 
+75% of varaiance in our penguin mass is explained in this model 
+
+
+## Usse 'broom' functions tiday and glance 
+use broom;;tidy to get the coefficient summary in a data frame
+use broom::glance to the model summary in a data frame 
+
+```{r}
+penguin_lm_tidy <- tidy(penguin_lm)
+penguin_lm_tidy 
+```
+
+Use in line code to find bill depth estimate
+`r penguin_lm_tidy$estimate[3]`
+
+```{r}
+penguin_lm_glance <- glance(penguin_lm)
+
+penguin_lm_glance
+```
+
+
+## Try another model 
+We have thought really hard, done a lit review, consulted experts, explored data, and decided most important variables to include are:
+- flipper length
+- species
+- sex
+
+Task: create a multiple linear regression model using those 3 predictor variables 
+```{r}
+penguinlm_2 <- lm(body_mass_g ~ flipper_length_mm + species + sex, data = penguins)
+
+penguinlm_2
+```
+
+Adele penguins are reference, female is reference
+mass(g) = -365.82 + 20.02(flipper length mm) - 87.63(chinstrap) + 836.26(gentoo) + 530.38(male)
+
+Use augment to see predicted values vs actual values
+```{r}
+augment(penguinlm_2)
+```
+
+## use plot to look at model dignostics 
+```{r}
+plot(penguinlm_2)
+```
+
+
+- concpetual ucerstanding and expertise allows me to resposibly determine that penguin species, sex, and flipper length are reasonable predictor variable (make sure you're thinking hard about variables and different variable combinations)
+-Diagnostic plots all check out for normality of residuals, homocedasticity, and no worrisome outliers(<<last on eis not an assumption)
+
+## Make output tables 
+
+Using model summary: 
+```{r}
+modelsummary(penguinlm_2)
+```
+
+Using stargazer
+
+```{r, results = "asis"}
+stargazer(penguinlm_2, type = "html")
+```
+
